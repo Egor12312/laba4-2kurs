@@ -134,17 +134,6 @@ namespace GoldenSectionLab {
       AddLabeledRow(panel, "f(x):", formulaField);
       AddLabeledRow(panel, "Что ищем:", modeSelector);
 
-      Label hintLabel = new Label
-      {
-        Text = "Допустимы: +, -, *, /, ^, скобки.\n" +
-                 "Функции: sin, cos, tan, exp, ln, log, sqrt, abs.\n" +
-                 "Константы: pi, e. Переменная: x.",
-        AutoSize = false,
-        Dock = DockStyle.Fill,
-        ForeColor = Color.DimGray
-      };
-      AddSpanRow(panel, hintLabel, ResultLabelHeightValue);
-
       resultLabel = new Label
       {
         Text = "Результат не рассчитан.",
@@ -315,31 +304,44 @@ namespace GoldenSectionLab {
           {
             float px = toPixel(tickX, 0).X;
             graphics.DrawLine(gridPen, px, 0, px, height);
-
             graphics.DrawLine(axisPen, px, xAxisY - TickMarkLengthValue, px, xAxisY + TickMarkLengthValue);
 
             string label = tickX.ToString(TickNumberFormat, CultureInfo.InvariantCulture);
             SizeF textSize = graphics.MeasureString(label, tickFont);
-            graphics.DrawString(label, tickFont, gridTextBrush, px - textSize.Width / 2, xAxisY + TickMarkLengthValue + 2);
+
+            float textY = xAxisY + TickMarkLengthValue + 2;
+            if (textY + textSize.Height > height)
+              textY = xAxisY - TickMarkLengthValue - textSize.Height - 2;
+
+            graphics.DrawString(label, tickFont, gridTextBrush, px - textSize.Width / 2, textY);
           }
 
           for (double tickY = Math.Ceiling(minY / stepY) * stepY; tickY <= maxY; tickY += stepY)
           {
             float py = toPixel(0, tickY).Y;
             graphics.DrawLine(gridPen, 0, py, width, py);
-
             graphics.DrawLine(axisPen, yAxisX - TickMarkLengthValue, py, yAxisX + TickMarkLengthValue, py);
 
             string label = tickY.ToString(TickNumberFormat, CultureInfo.InvariantCulture);
             SizeF textSize = graphics.MeasureString(label, tickFont);
-            graphics.DrawString(label, tickFont, gridTextBrush, yAxisX - textSize.Width - TickMarkLengthValue - 2, py - textSize.Height / 2);
+
+            float textX = yAxisX - textSize.Width - TickMarkLengthValue - 2;
+            if (textX < 0)
+              textX = yAxisX + TickMarkLengthValue + 2;
+
+            graphics.DrawString(label, tickFont, gridTextBrush, textX, py - textSize.Height / 2);
           }
 
           graphics.DrawLine(axisPen, 0, xAxisY, width, xAxisY);
           graphics.DrawLine(axisPen, yAxisX, 0, yAxisX, height);
 
-          graphics.DrawString("X", labelFont, textBrush, width - AxisLabelOffsetValue - 15, xAxisY + AxisLabelOffsetValue);
-          graphics.DrawString("Y", labelFont, textBrush, yAxisX + AxisLabelOffsetValue, AxisLabelOffsetValue);
+          float xTitleY = xAxisY + AxisLabelOffsetValue + 5;
+          if (xTitleY + 20 > height) xTitleY = xAxisY - AxisLabelOffsetValue - 20;
+          graphics.DrawString("X", labelFont, textBrush, width - AxisLabelOffsetValue - 20, xTitleY);
+
+          float yTitleX = yAxisX + AxisLabelOffsetValue;
+          if (yTitleX > width - 20) yTitleX = yAxisX - AxisLabelOffsetValue - 15;
+          graphics.DrawString("Y", labelFont, textBrush, yTitleX, AxisLabelOffsetValue);
 
           float startPixelX = toPixel(intervalStart, 0).X;
           float endPixelX = toPixel(intervalEnd, 0).X;
@@ -347,8 +349,16 @@ namespace GoldenSectionLab {
           graphics.DrawLine(intervalPen, startPixelX, 0, startPixelX, height);
           graphics.DrawLine(intervalPen, endPixelX, 0, endPixelX, height);
 
-          graphics.DrawString($"a = {intervalStart:G4}", labelFont, textBrush, startPixelX + AxisLabelOffsetValue, IntervalLabelOffsetValue);
-          graphics.DrawString($"b = {intervalEnd:G4}", labelFont, textBrush, endPixelX - IntervalLabelOffsetValue - 60, IntervalLabelOffsetValue);
+          float intervalLabelY = IntervalLabelOffsetValue + 15;
+
+          string aLabel = $"a = {intervalStart:G4}";
+          graphics.DrawString(aLabel, labelFont, textBrush, startPixelX + AxisLabelOffsetValue, intervalLabelY);
+
+          string bLabel = $"b = {intervalEnd:G4}";
+          SizeF bSize = graphics.MeasureString(bLabel, labelFont);
+          float bX = endPixelX - bSize.Width - AxisLabelOffsetValue;
+          if (bX < 0) bX = 0;
+          graphics.DrawString(bLabel, labelFont, textBrush, bX, intervalLabelY);
 
           PointF? previousPoint = null;
           for (int sampleIndex = 0; sampleIndex <= ChartSampleCountValue; ++sampleIndex)
@@ -417,7 +427,6 @@ namespace GoldenSectionLab {
           $"{modeCaption}:\n" +
           $"x* = {result.Point.ToString(ResultNumberFormat, CultureInfo.InvariantCulture)}\n" +
           $"f(x*) = {result.Value.ToString(ResultNumberFormat, CultureInfo.InvariantCulture)}\n" +
-          $"Итераций: {result.IterationCount}\n" +
           result.Message;
     }
 
